@@ -56,6 +56,44 @@ html, body { width:100%; height:100%; overflow:hidden; font-family: 'Segoe UI', 
 #lock-screen .hint { position:absolute; bottom:60px; color:rgba(255,255,255,0.4); font-size:13px; animation: fadeInOut 3s ease-in-out infinite; }
 @keyframes fadeInOut { 0%,100%{opacity:0.3;} 50%{opacity:0.8;} }
 
+/* ========== LOGIN SCREEN ========== */
+#login-screen {
+    position:fixed; inset:0; z-index:9998; display:none;
+    flex-direction:column; align-items:center; justify-content:center;
+    background: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 40%, #2d1b69 100%);
+    transition: opacity 0.5s ease;
+}
+#login-screen.show { display:flex; }
+#login-screen.dismiss { opacity:0; pointer-events:none; }
+#login-screen .login-box {
+    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+    border-radius:16px; padding:40px; text-align:center; width:340px;
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    box-shadow:0 16px 48px rgba(0,0,0,0.4);
+}
+#login-screen .login-avatar { font-size:56px; margin-bottom:12px; }
+#login-screen .login-title { font-size:20px; font-weight:300; color:#fff; margin-bottom:4px; }
+#login-screen .login-sub { font-size:13px; color:rgba(255,255,255,0.5); margin-bottom:24px; }
+#login-screen .login-input {
+    width:100%; padding:12px 16px; border:1px solid rgba(255,255,255,0.15);
+    border-radius:10px; background:rgba(255,255,255,0.06); color:#fff;
+    font-size:15px; outline:none; text-align:center; letter-spacing:2px;
+    transition: border-color 0.2s;
+}
+#login-screen .login-input:focus { border-color:var(--accent); }
+#login-screen .login-input::placeholder { color:rgba(255,255,255,0.3); letter-spacing:0; }
+#login-screen .login-btn {
+    width:100%; padding:12px; margin-top:14px; border:none; border-radius:10px;
+    background:var(--accent); color:#fff; font-size:15px; font-weight:500;
+    cursor:pointer; transition: background 0.2s, transform 0.1s;
+}
+#login-screen .login-btn:hover { background:var(--accent-hover); }
+#login-screen .login-btn:active { transform:scale(0.98); }
+#login-screen .login-error {
+    color:var(--red); font-size:12px; margin-top:10px; min-height:18px;
+    transition: opacity 0.2s;
+}
+
 /* ========== DESKTOP ========== */
 #desktop {
     position:fixed; inset:0; bottom:var(--taskbar-h);
@@ -373,8 +411,20 @@ html, body { width:100%; height:100%; overflow:hidden; font-family: 'Segoe UI', 
     <div class="boot-text">Starting WebOS...</div>
 </div>
 
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="show">
+    <div class="login-box">
+        <div class="login-avatar">⚔️</div>
+        <div class="login-title">WebOS Desktop</div>
+        <div class="login-sub">Enter your secret code to continue</div>
+        <input class="login-input" type="password" placeholder="Enter code..." id="login-code" autocomplete="off">
+        <button class="login-btn" id="login-btn">Unlock</button>
+        <div class="login-error" id="login-error"></div>
+    </div>
+</div>
+
 <!-- LOCK SCREEN -->
-<div id="lock-screen" class="show">
+<div id="lock-screen" style="display:none;">
     <div class="time" id="lock-time">12:00</div>
     <div class="date" id="lock-date">Sunday, June 7</div>
     <div class="hint">Click anywhere to unlock</div>
@@ -745,7 +795,7 @@ var Apps = {
             case 'game': window.open('../game/index.html','_blank'); break;
             case 'roblox': this.openBrowser(app, {url:'https://www.roblox.com'}); break;
             case 'fortnite': this.openBrowser(app, {url:'https://www.fortnite.com'}); break;
-            case 'genshin': this.openBrowser(app, {url:'https://genshin.hoyoverse.com'}); break;
+            case 'genshin': this.openGenshin(app); break;
             case 'poki': this.openBrowser(app, {url:'https://poki.com'}); break;
         }
     },
@@ -1389,6 +1439,50 @@ var Apps = {
             '</div>' +
         '</div>';
         WM.create({ title:'Weather', icon:app.icon, appId:app.id, width:400, height:360, body:body });
+    },
+
+    // -------- GENSHIN IMPACT --------
+    openGenshin: function(app) {
+        var body =
+            '<div style="height:100%;overflow:auto;background:linear-gradient(180deg,#1a1a3e 0%,#0d0d1f 100%);padding:0;">' +
+                '<div style="text-align:center;padding:30px 24px;">' +
+                    '<div style="font-size:56px;margin-bottom:8px;">⚔️</div>' +
+                    '<div style="font-size:28px;font-weight:300;color:#fff;margin-bottom:4px;">Genshin Impact</div>' +
+                    '<div style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:24px;">by HoYoverse (miHoYo)</div>' +
+
+                    '<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:28px;">' +
+                        '<a href="https://genshin.hoyoverse.com/en/download" target="_blank" style="padding:14px 28px;background:linear-gradient(135deg,#6c3ce1,#4a3aff);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600;text-decoration:none;display:inline-block;transition:transform 0.1s;">⬇️ Download PC</a>' +
+                        '<a href="https://play.google.com/store/apps/details?id=com.miHoYo.GenshinImpact" target="_blank" style="padding:14px 28px;background:#34a853;color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:15px;font-weight:500;text-decoration:none;display:inline-block;">📱 Android</a>' +
+                        '<a href="https://apps.apple.com/app/genshin-impact/id1517783697" target="_blank" style="padding:14px 28px;background:#333;color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:15px;font-weight:500;text-decoration:none;display:inline-block;">🍎 iOS</a>' +
+                    '</div>' +
+
+                    '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:left;margin-bottom:20px;">' +
+                        '<div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:12px;">🎮 Play on Browser (Cloud Gaming)</div>' +
+                        '<div style="display:flex;flex-wrap:wrap;gap:10px;">' +
+                            '<a href="https://www.nowgg.com/apps/genshin-impact" target="_blank" style="padding:10px 20px;background:#6c3ce1;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:500;">☁️ now.gg — Play Free</a>' +
+                            '<a href="https://play.geforcenow.com" target="_blank" style="padding:10px 20px;background:#76b900;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:500;">🟢 GeForce NOW</a>' +
+                            '<a href="https://www.xbox.com/en-US/play/cloud-gaming" target="_blank" style="padding:10px 20px;background:#107c10;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:500;">🟩 Xbox Cloud</a>' +
+                        '</div>' +
+                        '<div style="color:rgba(255,255,255,0.4);font-size:11px;margin-top:10px;">Cloud gaming lets you play on Chromebooks — no download needed!</div>' +
+                    '</div>' +
+
+                    '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:left;margin-bottom:20px;">' +
+                        '<div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:12px;">🌐 Quick Links</div>' +
+                        '<div style="display:flex;flex-wrap:wrap;gap:10px;">' +
+                            '<a href="https://genshin.hoyoverse.com" target="_blank" style="padding:8px 16px;background:rgba(255,255,255,0.08);color:#ccc;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.1);">🏠 Official Site</a>' +
+                            '<a href="https://genshin-impact.fandom.com" target="_blank" style="padding:8px 16px;background:rgba(255,255,255,0.08);color:#ccc;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.1);">📖 Wiki</a>' +
+                            '<a href="https://genshin-impact-map.appsample.com" target="_blank" style="padding:8px 16px;background:rgba(255,255,255,0.08);color:#ccc;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.1);">🗺️ Interactive Map</a>' +
+                            '<a href="https://www.reddit.com/r/Genshin_Impact" target="_blank" style="padding:8px 16px;background:rgba(255,255,255,0.08);color:#ccc;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.1);">💬 Reddit</a>' +
+                            '<a href="https://www.youtube.com/results?search_query=genshin+impact" target="_blank" style="padding:8px 16px;background:rgba(255,255,255,0.08);color:#ccc;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.1);">▶️ YouTube</a>' +
+                            '<a href="https://act.hoyoverse.com/ys/event/signin-sea-v3/index.html" target="_blank" style="padding:8px 16px;background:rgba(255,255,255,0.08);color:#ccc;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.1);">🎁 Daily Check-in</a>' +
+                        '</div>' +
+                    '</div>' +
+
+                    '<div style="color:rgba(255,255,255,0.3);font-size:11px;padding-top:8px;">All links open directly — no blocks, no restrictions</div>' +
+                '</div>' +
+            '</div>';
+
+        WM.create({ title:'Genshin Impact', icon:'⚔️', appId:app.id, width:600, height:520, body:body });
     }
 };
 
@@ -1408,14 +1502,17 @@ var OS = {
         var wp = localStorage.getItem('webos-wallpaper') || '1';
         document.getElementById('desktop').className = 'wallpaper-' + wp;
 
-        // Boot sequence
-        setTimeout(function() {
-            document.getElementById('boot-screen').classList.add('fade-out');
+        // Boot sequence — only auto-proceed if already logged in
+        if (sessionStorage.getItem('webos-auth') === 'true') {
             setTimeout(function() {
-                document.getElementById('boot-screen').style.display = 'none';
-                OS.updateLockTime();
-            }, 800);
-        }, 1500);
+                document.getElementById('boot-screen').classList.add('fade-out');
+                setTimeout(function() {
+                    document.getElementById('boot-screen').style.display = 'none';
+                    OS.updateLockTime();
+                }, 800);
+            }, 1500);
+        }
+        // If not logged in, the login system handles hiding the boot screen
 
         this.setupDesktopIcons();
         this.setupStartMenu();
@@ -1569,6 +1666,65 @@ var OS = {
         setTimeout(function(){ el.remove(); }, 3500);
     }
 };
+
+// ============ LOGIN SYSTEM ============
+(function(){
+    // Hash function — obscures password in source code
+    function simpleHash(s) {
+        var h = 0;
+        for (var i = 0; i < s.length; i++) {
+            h = ((h << 5) - h) + s.charCodeAt(i);
+            h = h & h; // Convert to 32-bit int
+        }
+        return h;
+    }
+    // Hash of the secret code
+    var CODE_HASH = -1421105083;
+
+    var loginScreen = document.getElementById('login-screen');
+    var loginInput = document.getElementById('login-code');
+    var loginBtn = document.getElementById('login-btn');
+    var loginError = document.getElementById('login-error');
+
+    // Check if already logged in this session
+    if (sessionStorage.getItem('webos-auth') === 'true') {
+        loginScreen.classList.remove('show');
+        loginScreen.style.display = 'none';
+        document.getElementById('lock-screen').style.display = '';
+        document.getElementById('lock-screen').classList.add('show');
+    } else {
+        // Hide boot screen quickly so login shows
+        setTimeout(function(){
+            document.getElementById('boot-screen').classList.add('fade-out');
+            setTimeout(function(){ document.getElementById('boot-screen').style.display='none'; }, 800);
+        }, 800);
+    }
+
+    function tryLogin() {
+        var code = loginInput.value.trim().toLowerCase();
+        if (!code) { loginError.textContent = 'Please enter the code'; return; }
+        if (simpleHash(code) === CODE_HASH) {
+            sessionStorage.setItem('webos-auth', 'true');
+            loginScreen.classList.add('dismiss');
+            setTimeout(function(){
+                loginScreen.classList.remove('show','dismiss');
+                loginScreen.style.display = 'none';
+                document.getElementById('lock-screen').style.display = '';
+                document.getElementById('lock-screen').classList.add('show');
+                OS.updateLockTime();
+            }, 500);
+        } else {
+            loginError.textContent = 'Wrong code. Try again.';
+            loginInput.value = '';
+            loginInput.style.borderColor = 'var(--red)';
+            setTimeout(function(){ loginInput.style.borderColor = ''; }, 1500);
+        }
+    }
+
+    loginBtn.onclick = tryLogin;
+    loginInput.addEventListener('keydown', function(e){ if(e.key==='Enter') tryLogin(); });
+    setTimeout(function(){ loginInput.focus(); }, 1200);
+})();
 
 // Lock screen click
 document.getElementById('lock-screen').addEventListener('click', function(){ OS.unlock(); });
