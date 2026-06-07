@@ -176,11 +176,13 @@ html, body { width:100%; height:100%; overflow:hidden; font-family: 'Segoe UI', 
     background:var(--bg-window); border:1px solid var(--border-bright);
     border-radius:var(--radius-lg); box-shadow:var(--shadow);
     display:flex; flex-direction:column; overflow:hidden;
-    transition: box-shadow 0.2s;
+    transition: box-shadow 0.2s, opacity 0.15s, transform 0.15s;
+    animation: windowOpen 0.2s ease-out;
 }
+@keyframes windowOpen { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:scale(1); } }
 .window.focused { box-shadow:var(--shadow-lg); border-color:rgba(255,255,255,0.15); }
 .window.minimized { display:none !important; }
-.window.maximized { border-radius:0 !important; border:none !important; }
+.window.maximized { border-radius:0 !important; border:none !important; transition: all 0.2s ease; }
 
 .win-titlebar {
     height:36px; display:flex; align-items:center; padding:0 8px 0 12px;
@@ -719,6 +721,10 @@ var Apps = {
         { id:'photos', name:'Photos', icon:'🖼️', pinned:false },
         { id:'weather', name:'Weather', icon:'🌤️', pinned:false },
         { id:'game', name:'Gacha Game', icon:'🎮', pinned:false },
+        { id:'roblox', name:'Roblox', icon:'🎮', pinned:false },
+        { id:'fortnite', name:'Fortnite', icon:'🔫', pinned:false },
+        { id:'genshin', name:'Genshin Impact', icon:'⚔️', pinned:false },
+        { id:'poki', name:'Poki Games', icon:'🕹️', pinned:false },
     ],
 
     launch: function(appId, args) {
@@ -736,7 +742,11 @@ var Apps = {
             case 'clock': this.openClock(app); break;
             case 'photos': this.openPhotos(app); break;
             case 'weather': this.openWeather(app); break;
-            case 'game': window.open('game/index.html','_blank'); break;
+            case 'game': window.open('../game/index.html','_blank'); break;
+            case 'roblox': this.openBrowser(app, {url:'https://www.roblox.com'}); break;
+            case 'fortnite': this.openBrowser(app, {url:'https://www.fortnite.com'}); break;
+            case 'genshin': this.openBrowser(app, {url:'https://genshin.hoyoverse.com'}); break;
+            case 'poki': this.openBrowser(app, {url:'https://poki.com'}); break;
         }
     },
 
@@ -757,20 +767,30 @@ var Apps = {
                     '<div class="browser-home">' +
                         '<div style="margin-bottom:16px;"><span style="font-size:48px;">G</span><span style="font-size:48px;color:#EA4335;">o</span><span style="font-size:48px;color:#FBBC05;">o</span><span style="font-size:48px;color:#4285F4;">g</span><span style="font-size:48px;color:#34A853;">l</span><span style="font-size:48px;color:#EA4335;">e</span></div>' +
                         '<div class="search-box"><input type="text" placeholder="Search Google..." id="bh-search"><button onclick="return false">Google Search</button></div>' +
-                        '<p style="color:var(--text-secondary);margin-top:12px;font-size:12px;">Searches open in a new tab for the best experience</p>' +
+                        '<p style="color:var(--text-secondary);margin-top:12px;font-size:12px;">Search anything — results load right here in the desktop!</p>' +
+                        '<p style="color:var(--text-secondary);font-size:11px;margin:8px 0 4px;text-align:left;width:100%;font-weight:600;">Games</p>' +
+                        '<div class="browser-bookmarks">' +
+                            '<div class="browser-bookmark" data-url="https://genshin.hoyoverse.com"><div class="bm-icon" style="background:linear-gradient(135deg,#2a2a4a,#4a3a8a);">⚔️</div><div class="bm-name">Genshin Impact</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://www.roblox.com"><div class="bm-icon" style="background:#e2231a;">🎮</div><div class="bm-name">Roblox</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://www.fortnite.com"><div class="bm-icon" style="background:#0078f2;">🔫</div><div class="bm-name">Fortnite</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://www.minecraft.net"><div class="bm-icon" style="background:#62b847;">⛏️</div><div class="bm-name">Minecraft</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://www.nowgg.com"><div class="bm-icon" style="background:#6c3ce1;">☁️</div><div class="bm-name">now.gg (Play mobile games)</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://poki.com"><div class="bm-icon" style="background:#01539b;">🕹️</div><div class="bm-name">Poki (Free games)</div></div>' +
+                        '</div>' +
+                        '<p style="color:var(--text-secondary);font-size:11px;margin:8px 0 4px;text-align:left;width:100%;font-weight:600;">Popular</p>' +
                         '<div class="browser-bookmarks">' +
                             '<div class="browser-bookmark" data-url="https://www.google.com"><div class="bm-icon" style="background:#fff;">🔍</div><div class="bm-name">Google</div></div>' +
                             '<div class="browser-bookmark" data-url="https://www.youtube.com"><div class="bm-icon" style="background:#f00;">▶️</div><div class="bm-name">YouTube</div></div>' +
-                            '<div class="browser-bookmark" data-url="https://www.wikipedia.org"><div class="bm-icon" style="background:#eee;">📖</div><div class="bm-name">Wikipedia</div></div>' +
-                            '<div class="browser-bookmark" data-url="https://www.reddit.com"><div class="bm-icon" style="background:#ff4500;">📱</div><div class="bm-name">Reddit</div></div>' +
-                            '<div class="browser-bookmark" data-url="https://github.com"><div class="bm-icon" style="background:#333;">🐱</div><div class="bm-name">GitHub</div></div>' +
                             '<div class="browser-bookmark" data-url="https://discord.com"><div class="bm-icon" style="background:#5865F2;">💬</div><div class="bm-name">Discord</div></div>' +
                             '<div class="browser-bookmark" data-url="https://www.twitch.tv"><div class="bm-icon" style="background:#9146FF;">🎮</div><div class="bm-name">Twitch</div></div>' +
-                            '<div class="browser-bookmark" data-url="https://twitter.com"><div class="bm-icon" style="background:#1DA1F2;">🐦</div><div class="bm-name">Twitter/X</div></div>' +
                             '<div class="browser-bookmark" data-url="https://www.tiktok.com"><div class="bm-icon" style="background:#010101;">🎵</div><div class="bm-name">TikTok</div></div>' +
                             '<div class="browser-bookmark" data-url="https://www.instagram.com"><div class="bm-icon" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);">📸</div><div class="bm-name">Instagram</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://twitter.com"><div class="bm-icon" style="background:#1DA1F2;">🐦</div><div class="bm-name">Twitter/X</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://www.reddit.com"><div class="bm-icon" style="background:#ff4500;">📱</div><div class="bm-name">Reddit</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://www.wikipedia.org"><div class="bm-icon" style="background:#eee;">📖</div><div class="bm-name">Wikipedia</div></div>' +
                             '<div class="browser-bookmark" data-url="https://www.netflix.com"><div class="bm-icon" style="background:#E50914;">🎬</div><div class="bm-name">Netflix</div></div>' +
                             '<div class="browser-bookmark" data-url="https://open.spotify.com"><div class="bm-icon" style="background:#1DB954;">🎧</div><div class="bm-name">Spotify</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://github.com"><div class="bm-icon" style="background:#333;">🐱</div><div class="bm-name">GitHub</div></div>' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -784,59 +804,78 @@ var Apps = {
                 var homePage = el.querySelector('.browser-home-page');
                 var homeSearch = el.querySelector('#bh-search');
                 var currentUrl = '';
+                var historyStack = [];
+                var historyIdx = -1;
+
+                function showInFrame(u) {
+                    currentUrl = u;
+                    urlBar.value = u;
+                    el.querySelector('.win-title').textContent = u.replace(/^https?:\/\/(www\.)?/,'').split('/')[0];
+                    homePage.style.display = 'none';
+                    frame.style.display = 'block';
+                    frame.src = u;
+                    if (historyStack[historyIdx] !== u) {
+                        historyStack = historyStack.slice(0, historyIdx + 1);
+                        historyStack.push(u);
+                        historyIdx = historyStack.length - 1;
+                    }
+                }
+
+                function goHome() {
+                    currentUrl = '';
+                    urlBar.value = '';
+                    el.querySelector('.win-title').textContent = 'Browser';
+                    frame.style.display = 'none';
+                    frame.src = '';
+                    homePage.style.display = 'block';
+                }
 
                 function navigate(rawUrl) {
                     var u = rawUrl.trim();
                     if (!u) return;
-                    // If it's a plain search query (no dots or colons), search Google
+                    // Search query — use Google
                     if (u.indexOf('.')===-1 && u.indexOf(':')===-1) {
-                        var googleUrl = 'https://www.google.com/search?q=' + encodeURIComponent(u);
-                        window.open(googleUrl, '_blank');
-                        urlBar.value = u;
-                        el.querySelector('.win-title').textContent = 'Searched: ' + u;
-                        return;
+                        u = 'https://www.google.com/search?igu=1&q=' + encodeURIComponent(u);
+                    } else if (!/^https?:\/\//i.test(u)) {
+                        u = 'https://' + u;
                     }
-                    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-                    currentUrl = u;
-                    urlBar.value = u;
-                    el.querySelector('.win-title').textContent = u;
-                    // Open in new tab — most sites block iframe embedding
-                    window.open(u, '_blank');
+                    showInFrame(u);
                 }
 
-                function tryInFrame(u) {
-                    urlBar.value = u;
-                    currentUrl = u;
-                    el.querySelector('.win-title').textContent = u;
-                    homePage.style.display = 'none';
-                    frame.style.display = 'block';
-                    frame.src = u;
-                }
-
+                // Toolbar buttons
                 urlBar.addEventListener('keydown', function(e){ if(e.key==='Enter') navigate(urlBar.value); });
                 el.querySelector('[data-nav="go"]').onclick = function(){ navigate(urlBar.value); };
-                el.querySelector('[data-nav="newtab"]').onclick = function(){ if(currentUrl) window.open(currentUrl,'_blank'); };
-                el.querySelector('[data-nav="back"]').onclick = function(){ try{frame.contentWindow.history.back();}catch(e){} };
-                el.querySelector('[data-nav="forward"]').onclick = function(){ try{frame.contentWindow.history.forward();}catch(e){} };
-                el.querySelector('[data-nav="reload"]').onclick = function(){ if(currentUrl) window.open(currentUrl,'_blank'); };
+                el.querySelector('[data-nav="newtab"]').onclick = function(){ if(currentUrl) window.open(currentUrl,'_blank'); else window.open('https://www.google.com','_blank'); };
+                el.querySelector('[data-nav="back"]').onclick = function(){
+                    if (historyIdx > 0) { historyIdx--; showInFrame(historyStack[historyIdx]); }
+                    else goHome();
+                };
+                el.querySelector('[data-nav="forward"]').onclick = function(){
+                    if (historyIdx < historyStack.length - 1) { historyIdx++; showInFrame(historyStack[historyIdx]); }
+                };
+                el.querySelector('[data-nav="reload"]').onclick = function(){
+                    if(currentUrl) { frame.src = ''; setTimeout(function(){ frame.src = currentUrl; }, 50); }
+                };
 
+                // Home page search
                 homeSearch.addEventListener('keydown', function(e){
                     if(e.key==='Enter') {
                         var q = homeSearch.value.trim();
-                        if(q) { window.open('https://www.google.com/search?q='+encodeURIComponent(q),'_blank'); el.querySelector('.win-title').textContent='Searched: '+q; }
+                        if(q) navigate(q);
                     }
                 });
                 el.querySelector('.search-box button').onclick = function(){
                     var q = homeSearch.value.trim();
-                    if(q) { window.open('https://www.google.com/search?q='+encodeURIComponent(q),'_blank'); el.querySelector('.win-title').textContent='Searched: '+q; }
+                    if(q) navigate(q);
                 };
 
+                // Bookmark clicks — load in frame
                 var bms = el.querySelectorAll('.browser-bookmark');
                 for(var i=0;i<bms.length;i++) {
-                    bms[i].addEventListener('click', function(){ var u=this.getAttribute('data-url'); window.open(u,'_blank'); });
+                    bms[i].addEventListener('click', function(){ showInFrame(this.getAttribute('data-url')); });
                 }
 
-                if (url) setTimeout(function(){ window.open(url,'_blank'); }, 100);
+                if (url) setTimeout(function(){ showInFrame(url); }, 100);
             }
         });
     },
@@ -1098,8 +1137,7 @@ var Apps = {
                             if (!args[0] || args[0]==='/') { cwd='/'; }
                             else if (args[0]==='..') {
                                 var p = cwd.split('/').filter(Boolean); p.pop();
-                                cwd = '/' + p.join('/'); if (cwd!=='/') cwd = '/' + p.join('/');
-                                cwd = cwd || '/';
+                                cwd = p.length ? '/' + p.join('/') : '/';
                             } else {
                                 var np = resolvePath(args[0]);
                                 if (FS.isDir(np)) cwd=np; else addLine('cd: "'+args[0]+'": Not a directory', 'error');
@@ -1288,7 +1326,7 @@ var OS = {
     boot: function() {
         window._bootTime = Date.now();
         this.updateClock();
-        setInterval(this.updateClock.bind(this), 30000);
+        setInterval(this.updateClock.bind(this), 15000);
 
         // Load wallpaper
         var wp = localStorage.getItem('webos-wallpaper') || '1';
@@ -1346,14 +1384,28 @@ var OS = {
             { app:'settings', name:'Settings', icon:'⚙️' },
             { app:'weather', name:'Weather', icon:'🌤️' },
             { app:'clock', name:'Clock', icon:'🕐' },
-            { app:'game', name:'Gacha Game', icon:'🎮' },
+            { app:'genshin', name:'Genshin Impact', icon:'⚔️' },
+            { app:'roblox', name:'Roblox', icon:'🎮' },
+            { app:'fortnite', name:'Fortnite', icon:'🔫' },
+            { app:'poki', name:'Poki Games', icon:'🕹️' },
+            { app:'game', name:'Gacha Game', icon:'🎲' },
         ];
         var container = document.getElementById('desktop-icons');
         for (var i = 0; i < icons.length; i++) {
             var div = document.createElement('div');
             div.className = 'desktop-icon';
             div.innerHTML = '<div class="icon">' + icons[i].icon + '</div><div class="label">' + icons[i].name + '</div>';
-            (function(appId){ div.ondblclick = function(){ Apps.launch(appId); }; })(icons[i].app);
+            (function(appId){
+                var lastTap = 0;
+                function launch() { Apps.launch(appId); }
+                div.ondblclick = launch;
+                // Also handle double-tap for touch devices
+                div.addEventListener('touchend', function(e) {
+                    var now = Date.now();
+                    if (now - lastTap < 400) { e.preventDefault(); launch(); lastTap = 0; }
+                    else { lastTap = now; }
+                });
+            })(icons[i].app);
             container.appendChild(div);
         }
     },
@@ -1445,6 +1497,9 @@ var OS = {
 // Lock screen click
 document.getElementById('lock-screen').addEventListener('click', function(){ OS.unlock(); });
 document.getElementById('lock-screen').addEventListener('touchend', function(){ OS.unlock(); });
+
+// Keep lock screen time updated
+setInterval(function(){ var ls = document.getElementById('lock-screen'); if(ls.classList.contains('show')) OS.updateLockTime(); }, 1000);
 
 // Boot!
 OS.boot();
