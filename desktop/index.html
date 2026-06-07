@@ -748,26 +748,33 @@ var Apps = {
                 '<button class="browser-nav-btn" data-nav="back" title="Back">◀</button>' +
                 '<button class="browser-nav-btn" data-nav="forward" title="Forward">▶</button>' +
                 '<button class="browser-nav-btn" data-nav="reload" title="Reload">↻</button>' +
-                '<input class="browser-url" type="text" placeholder="Search or enter URL..." value="">' +
+                '<input class="browser-url" type="text" placeholder="Search Google or enter URL..." value="">' +
                 '<button class="browser-nav-btn" data-nav="go" title="Go">→</button>' +
+                '<button class="browser-nav-btn" data-nav="newtab" title="Open in new tab">↗</button>' +
             '</div>' +
             '<div class="win-body-inner" style="flex:1;display:flex;flex-direction:column;height:calc(100% - 42px);">' +
                 '<div class="browser-home-page" style="flex:1;overflow:auto;">' +
                     '<div class="browser-home">' +
-                        '<h1>🌐 WebOS Browser</h1>' +
-                        '<p style="color:var(--text-secondary);margin-bottom:8px;">Search the web or enter a URL</p>' +
-                        '<div class="search-box"><input type="text" placeholder="Search with DuckDuckGo..." id="bh-search"><button onclick="return false">Search</button></div>' +
+                        '<div style="margin-bottom:16px;"><span style="font-size:48px;">G</span><span style="font-size:48px;color:#EA4335;">o</span><span style="font-size:48px;color:#FBBC05;">o</span><span style="font-size:48px;color:#4285F4;">g</span><span style="font-size:48px;color:#34A853;">l</span><span style="font-size:48px;color:#EA4335;">e</span></div>' +
+                        '<div class="search-box"><input type="text" placeholder="Search Google..." id="bh-search"><button onclick="return false">Google Search</button></div>' +
+                        '<p style="color:var(--text-secondary);margin-top:12px;font-size:12px;">Searches open in a new tab for the best experience</p>' +
                         '<div class="browser-bookmarks">' +
+                            '<div class="browser-bookmark" data-url="https://www.google.com"><div class="bm-icon" style="background:#fff;">🔍</div><div class="bm-name">Google</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://www.youtube.com"><div class="bm-icon" style="background:#f00;">▶️</div><div class="bm-name">YouTube</div></div>' +
                             '<div class="browser-bookmark" data-url="https://www.wikipedia.org"><div class="bm-icon" style="background:#eee;">📖</div><div class="bm-name">Wikipedia</div></div>' +
                             '<div class="browser-bookmark" data-url="https://www.reddit.com"><div class="bm-icon" style="background:#ff4500;">📱</div><div class="bm-name">Reddit</div></div>' +
-                            '<div class="browser-bookmark" data-url="https://news.ycombinator.com"><div class="bm-icon" style="background:#ff6600;">📰</div><div class="bm-name">Hacker News</div></div>' +
                             '<div class="browser-bookmark" data-url="https://github.com"><div class="bm-icon" style="background:#333;">🐱</div><div class="bm-name">GitHub</div></div>' +
-                            '<div class="browser-bookmark" data-url="https://www.youtube.com"><div class="bm-icon" style="background:#f00;">▶️</div><div class="bm-name">YouTube</div></div>' +
-                            '<div class="browser-bookmark" data-url="https://duckduckgo.com"><div class="bm-icon" style="background:#de5833;">🦆</div><div class="bm-name">DuckDuckGo</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://discord.com"><div class="bm-icon" style="background:#5865F2;">💬</div><div class="bm-name">Discord</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://www.twitch.tv"><div class="bm-icon" style="background:#9146FF;">🎮</div><div class="bm-name">Twitch</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://twitter.com"><div class="bm-icon" style="background:#1DA1F2;">🐦</div><div class="bm-name">Twitter/X</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://www.tiktok.com"><div class="bm-icon" style="background:#010101;">🎵</div><div class="bm-name">TikTok</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://www.instagram.com"><div class="bm-icon" style="background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);">📸</div><div class="bm-name">Instagram</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://www.netflix.com"><div class="bm-icon" style="background:#E50914;">🎬</div><div class="bm-name">Netflix</div></div>' +
+                            '<div class="browser-bookmark" data-url="https://open.spotify.com"><div class="bm-icon" style="background:#1DB954;">🎧</div><div class="bm-name">Spotify</div></div>' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
-                '<iframe class="browser-frame" style="display:none;flex:1;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>' +
+                '<iframe class="browser-frame" style="display:none;flex:1;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>' +
             '</div>';
 
         var win = WM.create({ title:'Browser', icon:app.icon, appId:app.id, width:850, height:550, body:body,
@@ -776,13 +783,30 @@ var Apps = {
                 var frame = el.querySelector('.browser-frame');
                 var homePage = el.querySelector('.browser-home-page');
                 var homeSearch = el.querySelector('#bh-search');
+                var currentUrl = '';
 
                 function navigate(rawUrl) {
                     var u = rawUrl.trim();
                     if (!u) return;
-                    if (u.indexOf('.')===-1 && u.indexOf(':')===-1) u = 'https://duckduckgo.com/?q=' + encodeURIComponent(u);
-                    else if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+                    // If it's a plain search query (no dots or colons), search Google
+                    if (u.indexOf('.')===-1 && u.indexOf(':')===-1) {
+                        var googleUrl = 'https://www.google.com/search?q=' + encodeURIComponent(u);
+                        window.open(googleUrl, '_blank');
+                        urlBar.value = u;
+                        el.querySelector('.win-title').textContent = 'Searched: ' + u;
+                        return;
+                    }
+                    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+                    currentUrl = u;
                     urlBar.value = u;
+                    el.querySelector('.win-title').textContent = u;
+                    // Open in new tab — most sites block iframe embedding
+                    window.open(u, '_blank');
+                }
+
+                function tryInFrame(u) {
+                    urlBar.value = u;
+                    currentUrl = u;
                     el.querySelector('.win-title').textContent = u;
                     homePage.style.display = 'none';
                     frame.style.display = 'block';
@@ -791,19 +815,28 @@ var Apps = {
 
                 urlBar.addEventListener('keydown', function(e){ if(e.key==='Enter') navigate(urlBar.value); });
                 el.querySelector('[data-nav="go"]').onclick = function(){ navigate(urlBar.value); };
+                el.querySelector('[data-nav="newtab"]').onclick = function(){ if(currentUrl) window.open(currentUrl,'_blank'); };
                 el.querySelector('[data-nav="back"]').onclick = function(){ try{frame.contentWindow.history.back();}catch(e){} };
                 el.querySelector('[data-nav="forward"]').onclick = function(){ try{frame.contentWindow.history.forward();}catch(e){} };
-                el.querySelector('[data-nav="reload"]').onclick = function(){ try{frame.src=frame.src;}catch(e){} };
+                el.querySelector('[data-nav="reload"]').onclick = function(){ if(currentUrl) window.open(currentUrl,'_blank'); };
 
-                homeSearch.addEventListener('keydown', function(e){ if(e.key==='Enter') navigate(homeSearch.value); });
-                el.querySelector('.search-box button').onclick = function(){ navigate(homeSearch.value); };
+                homeSearch.addEventListener('keydown', function(e){
+                    if(e.key==='Enter') {
+                        var q = homeSearch.value.trim();
+                        if(q) { window.open('https://www.google.com/search?q='+encodeURIComponent(q),'_blank'); el.querySelector('.win-title').textContent='Searched: '+q; }
+                    }
+                });
+                el.querySelector('.search-box button').onclick = function(){
+                    var q = homeSearch.value.trim();
+                    if(q) { window.open('https://www.google.com/search?q='+encodeURIComponent(q),'_blank'); el.querySelector('.win-title').textContent='Searched: '+q; }
+                };
 
                 var bms = el.querySelectorAll('.browser-bookmark');
                 for(var i=0;i<bms.length;i++) {
-                    bms[i].addEventListener('click', function(){ navigate(this.getAttribute('data-url')); });
+                    bms[i].addEventListener('click', function(){ var u=this.getAttribute('data-url'); window.open(u,'_blank'); });
                 }
 
-                if (url) setTimeout(function(){ navigate(url); }, 100);
+                if (url) setTimeout(function(){ window.open(url,'_blank'); }, 100);
             }
         });
     },
