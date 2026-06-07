@@ -1444,45 +1444,78 @@ var Apps = {
     // -------- GENSHIN IMPACT --------
     openGenshin: function(app) {
         var body =
-            '<div style="height:100%;overflow:auto;background:linear-gradient(180deg,#1a1a3e 0%,#0d0d1f 100%);padding:0;">' +
-                '<div style="text-align:center;padding:30px 24px;">' +
-                    '<div style="font-size:56px;margin-bottom:8px;">⚔️</div>' +
-                    '<div style="font-size:28px;font-weight:300;color:#fff;margin-bottom:4px;">Genshin Impact</div>' +
-                    '<div style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:24px;">by HoYoverse (miHoYo)</div>' +
-
-                    '<div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:28px;">' +
-                        '<a href="https://genshin.hoyoverse.com/en/download" target="_blank" style="padding:14px 28px;background:linear-gradient(135deg,#6c3ce1,#4a3aff);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600;text-decoration:none;display:inline-block;transition:transform 0.1s;">⬇️ Download PC</a>' +
-                        '<a href="https://play.google.com/store/apps/details?id=com.miHoYo.GenshinImpact" target="_blank" style="padding:14px 28px;background:#34a853;color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:15px;font-weight:500;text-decoration:none;display:inline-block;">📱 Android</a>' +
-                        '<a href="https://apps.apple.com/app/genshin-impact/id1517783697" target="_blank" style="padding:14px 28px;background:#333;color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:15px;font-weight:500;text-decoration:none;display:inline-block;">🍎 iOS</a>' +
+            '<div style="height:100%;display:flex;flex-direction:column;background:#000;position:relative;">' +
+                // Splash/loading screen
+                '<div class="gi-splash" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#0a0a1a 0%,#1a1a3e 40%,#2d1b69 100%);z-index:2;transition:opacity 0.8s ease;">' +
+                    '<div style="font-size:64px;margin-bottom:12px;animation:pulse 2s ease-in-out infinite;">⚔️</div>' +
+                    '<div style="font-size:24px;font-weight:300;color:#fff;letter-spacing:4px;">GENSHIN IMPACT</div>' +
+                    '<div style="color:rgba(255,255,255,0.4);font-size:12px;margin-top:6px;letter-spacing:1px;">HoYoverse</div>' +
+                    '<div style="margin-top:28px;width:200px;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">' +
+                        '<div class="gi-load-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#6c3ce1,#a855f7);border-radius:2px;transition:width 0.3s;"></div>' +
                     '</div>' +
-
-                    '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:left;margin-bottom:20px;">' +
-                        '<div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:12px;">🎮 Play on Browser (Cloud Gaming)</div>' +
-                        '<div style="display:flex;flex-wrap:wrap;gap:10px;">' +
-                            '<a href="https://www.nowgg.com/apps/genshin-impact" target="_blank" style="padding:10px 20px;background:#6c3ce1;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:500;">☁️ now.gg — Play Free</a>' +
-                            '<a href="https://play.geforcenow.com" target="_blank" style="padding:10px 20px;background:#76b900;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:500;">🟢 GeForce NOW</a>' +
-                            '<a href="https://www.xbox.com/en-US/play/cloud-gaming" target="_blank" style="padding:10px 20px;background:#107c10;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:500;">🟩 Xbox Cloud</a>' +
-                        '</div>' +
-                        '<div style="color:rgba(255,255,255,0.4);font-size:11px;margin-top:10px;">Cloud gaming lets you play on Chromebooks — no download needed!</div>' +
-                    '</div>' +
-
-                    '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:left;margin-bottom:20px;">' +
-                        '<div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:12px;">🌐 Quick Links</div>' +
-                        '<div style="display:flex;flex-wrap:wrap;gap:10px;">' +
-                            '<a href="https://genshin.hoyoverse.com" target="_blank" style="padding:8px 16px;background:rgba(255,255,255,0.08);color:#ccc;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.1);">🏠 Official Site</a>' +
-                            '<a href="https://genshin-impact.fandom.com" target="_blank" style="padding:8px 16px;background:rgba(255,255,255,0.08);color:#ccc;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.1);">📖 Wiki</a>' +
-                            '<a href="https://genshin-impact-map.appsample.com" target="_blank" style="padding:8px 16px;background:rgba(255,255,255,0.08);color:#ccc;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.1);">🗺️ Interactive Map</a>' +
-                            '<a href="https://www.reddit.com/r/Genshin_Impact" target="_blank" style="padding:8px 16px;background:rgba(255,255,255,0.08);color:#ccc;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.1);">💬 Reddit</a>' +
-                            '<a href="https://www.youtube.com/results?search_query=genshin+impact" target="_blank" style="padding:8px 16px;background:rgba(255,255,255,0.08);color:#ccc;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.1);">▶️ YouTube</a>' +
-                            '<a href="https://act.hoyoverse.com/ys/event/signin-sea-v3/index.html" target="_blank" style="padding:8px 16px;background:rgba(255,255,255,0.08);color:#ccc;border-radius:8px;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,0.1);">🎁 Daily Check-in</a>' +
-                        '</div>' +
-                    '</div>' +
-
-                    '<div style="color:rgba(255,255,255,0.3);font-size:11px;padding-top:8px;">All links open directly — no blocks, no restrictions</div>' +
+                    '<div class="gi-load-text" style="color:rgba(255,255,255,0.3);font-size:11px;margin-top:10px;">Launching...</div>' +
+                '</div>' +
+                // Game frame
+                '<iframe class="gi-frame" style="flex:1;border:none;width:100%;height:100%;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"></iframe>' +
+                // Bottom bar with quick actions
+                '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(15,15,30,0.95);border-top:1px solid rgba(255,255,255,0.08);flex-shrink:0;">' +
+                    '<span style="color:rgba(255,255,255,0.4);font-size:11px;flex:1;">⚔️ Genshin Impact — Cloud Gaming</span>' +
+                    '<button class="gi-btn-wiki" style="padding:4px 10px;background:rgba(255,255,255,0.08);color:#aaa;border:1px solid rgba(255,255,255,0.1);border-radius:6px;cursor:pointer;font-size:11px;">📖 Wiki</button>' +
+                    '<button class="gi-btn-map" style="padding:4px 10px;background:rgba(255,255,255,0.08);color:#aaa;border:1px solid rgba(255,255,255,0.1);border-radius:6px;cursor:pointer;font-size:11px;">🗺️ Map</button>' +
+                    '<button class="gi-btn-yt" style="padding:4px 10px;background:rgba(255,255,255,0.08);color:#aaa;border:1px solid rgba(255,255,255,0.1);border-radius:6px;cursor:pointer;font-size:11px;">▶️ Guides</button>' +
+                    '<button class="gi-btn-full" style="padding:4px 10px;background:rgba(108,60,225,0.3);color:#c4b5fd;border:1px solid rgba(108,60,225,0.4);border-radius:6px;cursor:pointer;font-size:11px;">↗ Fullscreen</button>' +
                 '</div>' +
             '</div>';
 
-        WM.create({ title:'Genshin Impact', icon:'⚔️', appId:app.id, width:600, height:520, body:body });
+        var win = WM.create({ title:'Genshin Impact', icon:'⚔️', appId:app.id, width:900, height:600, body:body,
+            onInit: function(el) {
+                var splash = el.querySelector('.gi-splash');
+                var loadBar = el.querySelector('.gi-load-bar');
+                var loadText = el.querySelector('.gi-load-text');
+                var frame = el.querySelector('.gi-frame');
+                var gameUrl = 'https://www.nowgg.com/apps/genshin-impact';
+
+                // Animated loading bar
+                var progress = 0;
+                var loadInterval = setInterval(function(){
+                    progress += Math.random() * 15 + 5;
+                    if (progress > 90) progress = 90;
+                    loadBar.style.width = progress + '%';
+                    if (progress > 30) loadText.textContent = 'Connecting to cloud server...';
+                    if (progress > 60) loadText.textContent = 'Loading Genshin Impact...';
+                    if (progress > 85) loadText.textContent = 'Almost ready...';
+                }, 400);
+
+                // Load the game
+                frame.src = gameUrl;
+                frame.addEventListener('load', function(){
+                    clearInterval(loadInterval);
+                    loadBar.style.width = '100%';
+                    loadText.textContent = 'Ready!';
+                    setTimeout(function(){
+                        splash.style.opacity = '0';
+                        setTimeout(function(){ splash.style.display = 'none'; }, 800);
+                    }, 500);
+                });
+
+                // Fallback: hide splash after 6s even if load event doesn't fire
+                setTimeout(function(){
+                    clearInterval(loadInterval);
+                    loadBar.style.width = '100%';
+                    loadText.textContent = 'Ready!';
+                    setTimeout(function(){
+                        splash.style.opacity = '0';
+                        setTimeout(function(){ splash.style.display = 'none'; }, 800);
+                    }, 400);
+                }, 6000);
+
+                // Bottom bar buttons
+                el.querySelector('.gi-btn-wiki').onclick = function(){ window.open('https://genshin-impact.fandom.com','_blank'); };
+                el.querySelector('.gi-btn-map').onclick = function(){ window.open('https://genshin-impact-map.appsample.com','_blank'); };
+                el.querySelector('.gi-btn-yt').onclick = function(){ window.open('https://www.youtube.com/results?search_query=genshin+impact+guide','_blank'); };
+                el.querySelector('.gi-btn-full').onclick = function(){ window.open(gameUrl,'_blank'); };
+            }
+        });
     }
 };
 
