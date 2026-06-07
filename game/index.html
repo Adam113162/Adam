@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gacha Legends 3D</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #000; font-family: 'Segoe UI', system-ui, sans-serif; cursor: crosshair; }
+        canvas { display: block; }
+
+        .hud-top {
+            position: fixed; top: 15px; left: 15px; z-index: 100;
+            display: flex; gap: 12px; align-items: flex-start;
+        }
+
+        .char-info {
+            background: rgba(0,0,0,0.75); border-radius: 12px; padding: 10px 15px;
+            backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1);
+            min-width: 180px;
+        }
+
+        .char-info .name { color: #ffd700; font-weight: bold; font-size: 1.1em; }
+        .char-info .element { color: #aaa; font-size: 0.8em; margin-top: 2px; }
+
+        .hp-bar-outer {
+            width: 100%; height: 6px; background: rgba(255,255,255,0.15);
+            border-radius: 3px; margin-top: 6px; overflow: hidden;
+        }
+        .hp-bar-inner {
+            height: 100%; background: linear-gradient(90deg, #4cff4c, #88ff00);
+            border-radius: 3px; transition: width 0.3s;
+        }
+
+        .hud-top-right {
+            position: fixed; top: 15px; right: 15px; z-index: 100;
+            background: rgba(0,0,0,0.75); border-radius: 12px; padding: 10px 15px;
+            backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1);
+            text-align: right; color: #fff;
+        }
+        .hud-top-right .currency { color: #ffd700; font-size: 1.3em; font-weight: bold; }
+        .hud-top-right .info { color: #aaa; font-size: 0.8em; margin-top: 3px; }
+
+        /* Party switcher - right side like Genshin */
+        .party-bar {
+            position: fixed; right: 15px; top: 50%; transform: translateY(-50%);
+            display: flex; flex-direction: column; gap: 6px; z-index: 100;
+        }
+        .party-slot {
+            width: 52px; height: 52px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25);
+            background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+            font-size: 1.4em; cursor: pointer; transition: all 0.2s; position: relative;
+            backdrop-filter: blur(5px);
+        }
+        .party-slot:hover { border-color: rgba(255,255,255,0.5); }
+        .party-slot.active { border-color: #ffd700; box-shadow: 0 0 12px rgba(255,215,0,0.6); background: rgba(255,215,0,0.15); }
+        .party-slot.locked { opacity: 0.4; }
+        .party-slot .key-hint {
+            position: absolute; top: -2px; right: -2px; background: rgba(0,0,0,0.8);
+            color: #fff; font-size: 0.5em; width: 16px; height: 16px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .party-slot .mini-hp {
+            position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
+            width: 36px; height: 3px; background: rgba(0,0,0,0.5); border-radius: 2px; overflow: hidden;
+        }
+        .party-slot .mini-hp-fill { height: 100%; background: #4cff4c; border-radius: 2px; }
+
+        /* Ability bar - bottom center like Genshin */
+        .ability-bar {
+            position: fixed; bottom: 20px; right: 20px; z-index: 100;
+            display: flex; flex-direction: column; gap: 8px; align-items: center;
+        }
+        .ability-slot {
+            width: 56px; height: 56px; border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.7);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #fff; cursor: pointer; transition: all 0.2s; position: relative;
+            backdrop-filter: blur(5px);
+        }
+        .ability-slot:hover { border-color: #ffd700; }
+        .ability-slot .key { font-size: 0.7em; color: #ffd700; font-weight: bold; }
+        .ability-slot .icon { font-size: 1.3em; }
+        .ability-slot.on-cooldown { opacity: 0.4; }
+        .ability-slot .cd-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.7); border-radius: 0 0 10px 10px;
+            text-align: center; font-size: 0.7em; color: #ff4444; padding: 1px;
+            display: none;
+        }
+
+        /* Controls hint */
+        .controls-hint {
+            position: fixed; bottom: 15px; left: 15px; z-index: 100;
+            background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 8px;
+            color: rgba(255,255,255,0.5); font-size: 0.72em; line-height: 1.5;
+            backdrop-filter: blur(5px);
+        }
+        .controls-hint kbd {
+            background: rgba(255,255,255,0.15); padding: 1px 4px; border-radius: 3px; color: #fff;
+        }
+
+        /* Crosshair */
+        .crosshair {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            width: 6px; height: 6px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.6);
+            pointer-events: none; z-index: 50;
+        }
+
+        /* Damage popups */
+        .dmg-popup {
+            position: fixed; pointer-events: none; z-index: 200;
+            font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            animation: dmgFloat 1s ease-out forwards;
+        }
+        .dmg-popup.normal { color: #fff; font-size: 1.2em; }
+        .dmg-popup.crit { color: #ffd700; font-size: 1.8em; }
+        .dmg-popup.element { color: #88ccff; font-size: 1.4em; }
+
+        @keyframes dmgFloat {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(0.7); }
+        }
+
+        /* Kill banner */
+        .kill-banner {
+            position: fixed; top: 25%; left: 50%; transform: translateX(-50%);
+            color: #fff; font-size: 1.2em; font-weight: bold; pointer-events: none; z-index: 200;
+            text-shadow: 0 0 10px rgba(255,100,0,0.5);
+            animation: killAnim 1.5s ease-out forwards;
+        }
+        @keyframes killAnim {
+            0% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+
+        /* Gacha Modal */
+        .gacha-overlay {
+            display: none; position: fixed; inset: 0; z-index: 1000;
+            background: radial-gradient(ellipse at center, #1a0a2e 0%, #0a0014 100%);
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .gacha-overlay.open { display: flex; }
+        .gacha-title { font-size: 2.2em; color: #ffd700; margin-bottom: 10px; text-shadow: 0 0 30px rgba(255,215,0,0.4); }
+        .gacha-subtitle { color: #aaa; margin-bottom: 20px; }
+        .gacha-results { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 750px; margin: 15px 0; min-height: 100px; }
+        .gacha-card {
+            width: 110px; padding: 12px 8px; border-radius: 10px; text-align: center;
+            animation: cardFlip 0.5s ease backwards;
+        }
+        .gacha-card.common { background: linear-gradient(135deg,#333,#1a1a1a); border: 1px solid #555; }
+        .gacha-card.rare { background: linear-gradient(135deg,#1a3568,#0d1a34); border: 1px solid #4a9eff; box-shadow: 0 0 12px rgba(74,158,255,0.3); }
+        .gacha-card.epic { background: linear-gradient(135deg,#3d1a68,#1d0d34); border: 1px solid #b44aff; box-shadow: 0 0 15px rgba(180,74,255,0.4); }
+        .gacha-card.legendary { background: linear-gradient(135deg,#685a1a,#342d0d); border: 1px solid #ffd700; box-shadow: 0 0 25px rgba(255,215,0,0.5); }
+        @keyframes cardFlip { from { opacity:0; transform: scale(0.3) rotateY(180deg); } to { opacity:1; transform: scale(1) rotateY(0); } }
+        .gacha-card .g-icon { font-size: 2em; margin-bottom: 5px; }
+        .gacha-card .g-name { font-weight: bold; color: #fff; font-size: 0.85em; }
+        .gacha-card .g-rarity { color: #999; font-size: 0.7em; text-transform: uppercase; margin-top: 3px; }
+        .gacha-card .g-stars { color: #ffd700; font-size: 0.7em; }
+
+        .gacha-btns { display: flex; gap: 12px; margin-top: 15px; }
+        .g-btn {
+            padding: 10px 28px; border: none; border-radius: 8px;
+            font-size: 0.95em; font-weight: bold; cursor: pointer; transition: all 0.2s;
+        }
+        .g-btn:hover { transform: scale(1.05); }
+        .g-btn.pull1 { background: linear-gradient(135deg,#5b6abf,#7b5ea7); color: #fff; }
+        .g-btn.pull10 { background: linear-gradient(135deg,#e06090,#c04070); color: #fff; }
+        .g-btn.close-btn { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+        .g-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .gacha-pity { color: #888; font-size: 0.8em; margin-top: 10px; }
+
+        /* Enemy HP bar (world-space, rendered via CSS) */
+        .enemy-hp-bar {
+            position: fixed; pointer-events: none; z-index: 150;
+            width: 60px; height: 5px; background: rgba(0,0,0,0.6); border-radius: 3px; overflow: hidden;
+            transform: translateX(-50%);
+        }
+        .enemy-hp-bar .fill { height: 100%; background: #ff4444; border-radius: 3px; transition: width 0.2s; }
+        .enemy-hp-bar .name { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 0.6em; white-space: nowrap; }
+    </style>
+</head>
+<body>
+    <div class="hud-top">
+        <div class="char-info">
+            <div class="name" id="hud-name">Traveler</div>
+            <div class="element" id="hud-element">🌪️ Wind</div>
+            <div class="hp-bar-outer"><div class="hp-bar-inner" id="hud-hp"></div></div>
+        </div>
+    </div>
+
+    <div class="hud-top-right">
+        <div class="currency" id="hud-currency">💎 10,000</div>
+        <div class="info" id="hud-enemies">Enemies: 0</div>
+        <div class="info" id="hud-score">Score: 0</div>
+    </div>
+
+    <div class="party-bar" id="party-bar"></div>
+
+    <div class="ability-bar">
+        <div class="ability-slot" id="btn-burst" onclick="game.useAbility('burst')">
+            <span class="key">Q</span><span class="icon">💥</span>
+            <div class="cd-overlay" id="cd-burst"></div>
+        </div>
+        <div class="ability-slot" id="btn-skill" onclick="game.useAbility('skill')">
+            <span class="key">E</span><span class="icon">✨</span>
+            <div class="cd-overlay" id="cd-skill"></div>
+        </div>
+        <div class="ability-slot" onclick="game.openGacha()">
+            <span class="key">G</span><span class="icon">🎲</span>
+        </div>
+    </div>
+
+    <div class="crosshair"></div>
+
+    <div class="controls-hint">
+        <kbd>WASD</kbd> Move · <kbd>Mouse</kbd> Look · <kbd>LMB</kbd> Attack · <kbd>Space</kbd> Jump<br>
+        <kbd>E</kbd> Skill · <kbd>Q</kbd> Burst · <kbd>G</kbd> Gacha · <kbd>1-4</kbd> Switch
+    </div>
+
+    <div class="gacha-overlay" id="gacha-overlay">
+        <div class="gacha-title">✦ Wish ✦</div>
+        <div class="gacha-subtitle">Wanderlust Invocation</div>
+        <div class="gacha-results" id="gacha-results">
+            <p style="color:#666">Click to wish...</p>
+        </div>
+        <div style="color:#ffd700;font-size:1.1em" id="gacha-bal">💎 10,000</div>
+        <div class="gacha-pity" id="gacha-pity">Pity: 0/90</div>
+        <div class="gacha-btns">
+            <button class="g-btn pull1" id="btn-wish1" onclick="game.wish(1)">Wish ×1 (160💎)</button>
+            <button class="g-btn pull10" id="btn-wish10" onclick="game.wish(10)">Wish ×10 (1440💎)</button>
+            <button class="g-btn close-btn" onclick="game.closeGacha()">Close [G]</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+    // All game code in a global 'game' object to avoid TDZ issues
+    var game = {};
+
+    (function() {
+        // ======== STATE ========
+        var currency = 10000;
+        var score = 0;
+        var pityCount = 0;
+        var gachaOpen = false;
+        var activeCharIdx = 0;
+
+        var party = [
+            { name: 'Traveler', element: 'Wind', icon: '🌪️', color: 0x44ffaa, attack: 22, hp: 100, maxHp: 100, unlocked: true },
+            { name: 'Amber', element: 'Fire', icon: '🔥', color: 0xff4444, attack: 28, hp: 90, maxHp: 90, unlocked: false },
+            { name: 'Xingqiu', element: 'Water', icon: '💧', color: 0x4488ff, attack: 32, hp: 85, maxHp: 85, unlocked: false },
+            { name: 'Noelle', element: 'Earth', icon: '🛡️', color: 0xffaa44, attack: 20, hp: 130, maxHp: 130, unlocked: false },
+        ];
+
+        var enemies = [];
+        var cooldowns = { skill: 0, burst: 0 };
+        var enemyHPBars = [];
+
+        // Input state
+        var keys = {};
+        var yaw = 0, pitch = 0;
+        var mouseLocked = false;
+        var isJumping = false;
+        var playerY = 0;
+        var vySpeed = 0;
+
+        // ======== THREE.JS SETUP ========
+        var clock = new THREE.Clock();
+        var scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x7ec8e3);
+        scene.fog = new THREE.FogExp2(0x7ec8e3, 0.008);
+
+        var camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 500);
+        camera.position.set(0, 4, 8);
+
+        var renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        document.body.appendChild(renderer.domElement);
+
+        // Lighting - warm sun like Genshin's Mondstadt
+        var ambLight = new THREE.AmbientLight(0xb4d7ff, 0.5);
+        scene.add(ambLight);
+
+        var sun = new THREE.DirectionalLight(0xfff0d6, 1.2);
+        sun.position.set(40, 60, 30);
+        sun.castShadow = true;
+        sun.shadow.mapSize.set(2048, 2048);
+        sun.shadow.camera.near = 1;
+        sun.shadow.camera.far = 150;
+        sun.shadow.camera.left = -50;
+        sun.shadow.camera.right = 50;
+        sun.shadow.camera.top = 50;
+        sun.shadow.camera.bottom = -50;
+        scene.add(sun);
+
+        var hemiLight = new THREE.HemisphereLight(0x88ccff, 0x44aa44, 0.3);
+        scene.add(hemiLight);
+
+        // ======== WORLD ========
+        // Ground - grassy field
+        var groundGeo = new THREE.PlaneGeometry(300, 300, 80, 80);
+        var verts = groundGeo.attributes.position.array;
+        for (var i = 0; i < verts.length; i += 3) {
+            verts[i + 2] += (Math.sin(verts[i] * 0.03) * Math.cos(verts[i+1] * 0.03) * 1.5);
+        }
+        groundGeo.computeVertexNormals();
+        var groundMat = new THREE.MeshLambertMaterial({ color: 0x4a9e4a });
+        var ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Path (stone road)
+        var pathGeo = new THREE.PlaneGeometry(4, 60, 1, 1);
+        var pathMat = new THREE.MeshLambertMaterial({ color: 0x998866 });
+        var path = new THREE.Mesh(pathGeo, pathMat);
+        path.rotation.x = -Math.PI / 2;
+        path.position.y = 0.02;
+        scene.add(path);
+
+        // Trees
+        function makeTree(x, z, scale) {
+            var g = new THREE.Group();
+            var trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.2*scale, 0.4*scale, 3*scale, 8),
+                new THREE.MeshLambertMaterial({ color: 0x6b4226 })
+            );
+            trunk.position.y = 1.5*scale;
+            trunk.castShadow = true;
+            g.add(trunk);
+
+            // Multiple leaf clusters for fuller look
+            var leafColors = [0x2d8a2d, 0x35a035, 0x289028];
+            for (var i = 0; i < 3; i++) {
+                var leaf = new THREE.Mesh(
+                    new THREE.SphereGeometry((1.5 + Math.random()*0.5)*scale, 8, 6),
+                    new THREE.MeshLambertMaterial({ color: leafColors[i % 3] })
+                );
+                leaf.position.set((Math.random()-0.5)*scale, (3.5 + i*0.8)*scale, (Math.random()-0.5)*scale);
+                leaf.castShadow = true;
+                g.add(leaf);
+            }
+            g.position.set(x, 0, z);
+            scene.add(g);
+        }
+
+        // Buildings (Mondstadt style)
+        function makeBuilding(x, z, w, h, d) {
+            var g = new THREE.Group();
+            var walls = new THREE.Mesh(
+                new THREE.BoxGeometry(w, h, d),
+                new THREE.MeshLambertMaterial({ color: 0xe8dcc8 })
+            );
+            walls.position.y = h/2;
+            walls.castShadow = true;
+            walls.receiveShadow = true;
+            g.add(walls);
+
+            // Blue roof like Mondstadt
+            var roof = new THREE.Mesh(
+                new THREE.ConeGeometry(Math.max(w,d)*0.75, 3, 4),
+                new THREE.MeshLambertMaterial({ color: 0x2255aa })
+            );
+            roof.position.y = h + 1.5;
+            roof.rotation.y = Math.PI/4;
+            roof.castShadow = true;
+            g.add(roof);
+
+            // Windows
+            for (var i = 0; i < 2; i++) {
+                var win = new THREE.Mesh(
+                    new THREE.PlaneGeometry(0.8, 1.2),
+                    new THREE.MeshBasicMaterial({ color: 0xffffcc })
+                );
+                win.position.set(-w/2 - 0.01, h*0.5, (i-0.5)*d*0.4);
+                win.rotation.y = -Math.PI/2;
+                g.add(win);
+            }
+
+            g.position.set(x, 0, z);
+            scene.add(g);
+        }
+
+        // Rocks
+        function makeRock(x, z, s) {
+            var rock = new THREE.Mesh(
+                new THREE.DodecahedronGeometry(s, 0),
+                new THREE.MeshLambertMaterial({ color: 0x777777 })
+            );
+            rock.position.set(x, s*0.4, z);
+            rock.rotation.set(Math.random()*2, Math.random()*2, 0);
+            rock.castShadow = true;
+            scene.add(rock);
+        }
+
+        // Water (lake)
+        var waterGeo = new THREE.CircleGeometry(12, 48);
+        var waterMat = new THREE.MeshLambertMaterial({ color: 0x3388cc, transparent: true, opacity: 0.7 });
+        var water = new THREE.Mesh(waterGeo, waterMat);
+        water.rotation.x = -Math.PI/2;
+        water.position.set(-20, 0.05, -25);
+        scene.add(water);
+
+        // Populate world
+        for (var i = 0; i < 50; i++) {
+            var x = (Math.random()-0.5)*250;
+            var z = (Math.random()-0.5)*250;
+            if (Math.abs(x) > 6 || Math.abs(z) > 6) makeTree(x, z, 0.8 + Math.random()*0.6);
+        }
+        for (var i = 0; i < 25; i++) {
+            var x = (Math.random()-0.5)*200;
+            var z = (Math.random()-0.5)*200;
+            makeRock(x, z, 0.5 + Math.random()*1.2);
+        }
+        makeBuilding(25, -20, 7, 6, 6);
+        makeBuilding(-30, 25, 5, 5, 5);
+        makeBuilding(35, 35, 9, 8, 7);
+        makeBuilding(-20, -40, 6, 5, 6);
+
+        // Teleport waypoint (glowing crystal)
+        var wpGeo = new THREE.OctahedronGeometry(1, 0);
+        var wpMat = new THREE.MeshBasicMaterial({ color: 0x44ddff, transparent: true, opacity: 0.8 });
+        var waypoint = new THREE.Mesh(wpGeo, wpMat);
+        waypoint.position.set(0, 2, -8);
+        scene.add(waypoint);
+
+        // ======== PLAYER ========
+        var playerGroup = new THREE.Group();
+        // Body
+        var pBody = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.3, 0.35, 1.2, 12),
+            new THREE.MeshLambertMaterial({ color: 0x44ffaa })
+        );
+        pBody.position.y = 1.1;
+        pBody.castShadow = true;
+        playerGroup.add(pBody);
+        // Head
+        var pHead = new THREE.Mesh(
+            new THREE.SphereGeometry(0.3, 16, 12),
+            new THREE.MeshLambertMaterial({ color: 0xffddbb })
+        );
+        pHead.position.y = 1.95;
+        pHead.castShadow = true;
+        playerGroup.add(pHead);
+        // Sword
+        var pSword = new THREE.Mesh(
+            new THREE.BoxGeometry(0.06, 1.0, 0.06),
+            new THREE.MeshLambertMaterial({ color: 0xccccdd })
+        );
+        pSword.position.set(0.5, 1.1, 0);
+        playerGroup.add(pSword);
+
+        playerGroup.position.set(0, 0, 0);
+        scene.add(playerGroup);
+
+        // ======== ENEMIES ========
+        function spawnEnemy() {
+            var angle = Math.random() * Math.PI * 2;
+            var dist = 15 + Math.random() * 35;
+            var ex = playerGroup.position.x + Math.cos(angle) * dist;
+            var ez = playerGroup.position.z + Math.sin(angle) * dist;
+
+            var types = [
+                { name: 'Slime', color: 0x66ee66, hp: 40, size: 0.55, speed: 2.5, reward: 60 },
+                { name: 'Hilichurl', color: 0x886644, hp: 70, size: 0.65, speed: 3.0, reward: 100 },
+                { name: 'Abyss Mage', color: 0x6644aa, hp: 120, size: 0.75, speed: 2.0, reward: 200 },
+            ];
+            var type = types[Math.floor(Math.random() * types.length)];
+
+            var mesh = new THREE.Group();
+            var body = new THREE.Mesh(
+                new THREE.SphereGeometry(type.size, 12, 8),
+                new THREE.MeshLambertMaterial({ color: type.color })
+            );
+            body.position.y = type.size;
+            body.castShadow = true;
+            mesh.add(body);
+
+            // Eyes
+            var eyeGeo = new THREE.SphereGeometry(type.size*0.15, 8, 8);
+            var eyeMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
+            var e1 = new THREE.Mesh(eyeGeo, eyeMat);
+            e1.position.set(-type.size*0.3, type.size*1.2, type.size*0.7);
+            mesh.add(e1);
+            var e2 = new THREE.Mesh(eyeGeo, eyeMat);
+            e2.position.set(type.size*0.3, type.size*1.2, type.size*0.7);
+            mesh.add(e2);
+
+            mesh.position.set(ex, 0, ez);
+            scene.add(mesh);
+
+            var hpBar = document.createElement('div');
+            hpBar.className = 'enemy-hp-bar';
+            hpBar.innerHTML = '<div class="name">' + type.name + '</div><div class="fill" style="width:100%"></div>';
+            document.body.appendChild(hpBar);
+
+            enemies.push({
+                mesh: mesh, hp: type.hp, maxHp: type.hp,
+                speed: type.speed, reward: type.reward,
+                name: type.name, size: type.size, hpBar: hpBar
+            });
+        }
+
+        // Spawn initial wave
+        setTimeout(function() {
+            for (var i = 0; i < 8; i++) spawnEnemy();
+            updateHUD();
+        }, 200);
+
+        // ======== INPUT ========
+        document.addEventListener('keydown', function(e) {
+            keys[e.key.toLowerCase()] = true;
+            if (e.key === 'g') game.toggleGacha();
+            if (e.key === 'e') game.useAbility('skill');
+            if (e.key === 'q') game.useAbility('burst');
+            if (e.key >= '1' && e.key <= '4') game.switchChar(parseInt(e.key)-1);
+            if (e.key === ' ') { e.preventDefault(); doJump(); }
+        });
+        document.addEventListener('keyup', function(e) { keys[e.key.toLowerCase()] = false; });
+
+        renderer.domElement.addEventListener('click', function() {
+            if (gachaOpen) return;
+            renderer.domElement.requestPointerLock();
+        });
+        document.addEventListener('pointerlockchange', function() {
+            mouseLocked = (document.pointerLockElement === renderer.domElement);
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!mouseLocked) return;
+            yaw -= e.movementX * 0.002;
+            pitch -= e.movementY * 0.002;
+            pitch = Math.max(-1.2, Math.min(1.0, pitch));
+        });
+        renderer.domElement.addEventListener('mousedown', function(e) {
+            if (!mouseLocked) return;
+            if (e.button === 0) doAttack();
+        });
+
+        // ======== COMBAT ========
+        function doAttack() {
+            var char = party[activeCharIdx];
+            var range = 4.5;
+            var hitAny = false;
+
+            for (var i = enemies.length - 1; i >= 0; i--) {
+                var en = enemies[i];
+                var d = playerGroup.position.distanceTo(en.mesh.position);
+                if (d < range) {
+                    var dmg = char.attack + Math.floor(Math.random() * 12);
+                    en.hp -= dmg;
+                    showDamage(en.mesh.position, dmg, false);
+                    hitAny = true;
+
+                    if (en.hp <= 0) {
+                        killEnemy(i);
+                    } else {
+                        en.hpBar.querySelector('.fill').style.width = (en.hp/en.maxHp*100)+'%';
+                    }
+                }
+            }
+
+            // Sword swing
+            pSword.rotation.z = -0.8;
+            setTimeout(function() { pSword.rotation.z = 0; }, 150);
+        }
+
+        function killEnemy(idx) {
+            var en = enemies[idx];
+            scene.remove(en.mesh);
+            en.hpBar.remove();
+            enemies.splice(idx, 1);
+            currency += en.reward;
+            score += en.reward;
+            showKill(en.name, en.reward);
+            updateHUD();
+            setTimeout(spawnEnemy, 2000 + Math.random()*3000);
+        }
+
+        game.useAbility = function(type) {
+            if (gachaOpen) return;
+            var char = party[activeCharIdx];
+
+            if (type === 'skill' && cooldowns.skill <= 0) {
+                cooldowns.skill = 6;
+                var range = 8;
+                // Visual ring
+                var ring = new THREE.Mesh(
+                    new THREE.RingGeometry(0.5, range, 32),
+                    new THREE.MeshBasicMaterial({ color: char.color, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
+                );
+                ring.rotation.x = -Math.PI/2;
+                ring.position.copy(playerGroup.position);
+                ring.position.y = 0.1;
+                scene.add(ring);
+                setTimeout(function() { scene.remove(ring); }, 400);
+
+                for (var i = enemies.length-1; i >= 0; i--) {
+                    var en = enemies[i];
+                    if (playerGroup.position.distanceTo(en.mesh.position) < range) {
+                        var dmg = char.attack * 2 + Math.floor(Math.random()*15);
+                        en.hp -= dmg;
+                        showDamage(en.mesh.position, dmg, true);
+                        if (en.hp <= 0) killEnemy(i);
+                        else en.hpBar.querySelector('.fill').style.width = (en.hp/en.maxHp*100)+'%';
+                    }
+                }
+            } else if (type === 'burst' && cooldowns.burst <= 0) {
+                cooldowns.burst = 15;
+                var range = 14;
+                // Burst sphere
+                var sphere = new THREE.Mesh(
+                    new THREE.SphereGeometry(range, 16, 12),
+                    new THREE.MeshBasicMaterial({ color: char.color, transparent: true, opacity: 0.25, wireframe: true })
+                );
+                sphere.position.copy(playerGroup.position);
+                scene.add(sphere);
+                setTimeout(function() { scene.remove(sphere); }, 600);
+
+                for (var i = enemies.length-1; i >= 0; i--) {
+                    var en = enemies[i];
+                    if (playerGroup.position.distanceTo(en.mesh.position) < range) {
+                        var dmg = char.attack * 5 + Math.floor(Math.random()*40);
+                        en.hp -= dmg;
+                        showDamage(en.mesh.position, dmg, true);
+                        if (en.hp <= 0) killEnemy(i);
+                        else en.hpBar.querySelector('.fill').style.width = (en.hp/en.maxHp*100)+'%';
+                    }
+                }
+            }
+        };
+
+        function doJump() {
+            if (!isJumping) {
+                isJumping = true;
+                vySpeed = 0.18;
+            }
+        }
+
+        game.switchChar = function(idx) {
+            if (idx < 0 || idx >= 4) return;
+            if (!party[idx].unlocked) return;
+            activeCharIdx = idx;
+            var c = party[idx];
+            pBody.material.color.setHex(c.color);
+            document.getElementById('hud-name').textContent = c.name;
+            document.getElementById('hud-element').textContent = getElIcon(c.element) + ' ' + c.element;
+            updatePartyUI();
+            updateHUD();
+        };
+
+        // ======== GACHA ========
+        var POOL = [
+            { name:'Slime', rarity:'common', icon:'🟢', stars:1 },
+            { name:'Hilichurl', rarity:'common', icon:'👺', stars:1 },
+            { name:'Bat', rarity:'common', icon:'🦇', stars:1 },
+            { name:'Boar', rarity:'common', icon:'🐗', stars:1 },
+            { name:'Amber', rarity:'rare', icon:'🔥', stars:4, partyIdx:1 },
+            { name:'Xingqiu', rarity:'rare', icon:'💧', stars:4, partyIdx:2 },
+            { name:'Fischl', rarity:'rare', icon:'⚡', stars:4 },
+            { name:'Beidou', rarity:'rare', icon:'🌊', stars:4 },
+            { name:'Keqing', rarity:'epic', icon:'⚡', stars:5 },
+            { name:'Noelle', rarity:'epic', icon:'🛡️', stars:5, partyIdx:3 },
+            { name:'Zhongli', rarity:'legendary', icon:'🏔️', stars:5 },
+            { name:'Raiden', rarity:'legendary', icon:'⚡', stars:5 },
+        ];
+
+        game.wish = function(count) {
+            var cost = count === 1 ? 160 : 1440;
+            if (currency < cost) return;
+            currency -= cost;
+
+            var results = [];
+            for (var i = 0; i < count; i++) {
+                pityCount++;
+                var rarity;
+                if (pityCount >= 90) { rarity = 'legendary'; pityCount = 0; }
+                else if (pityCount >= 75) { rarity = Math.random() < 0.3 ? 'legendary' : (Math.random() < 0.5 ? 'epic' : 'rare'); }
+                else {
+                    var r = Math.random();
+                    if (r < 0.016) { rarity = 'legendary'; pityCount = 0; }
+                    else if (r < 0.07) { rarity = 'epic'; }
+                    else if (r < 0.35) rarity = 'rare';
+                    else rarity = 'common';
+                }
+                // Guarantee rare+ on 10th pull in a 10-pull
+                if (i === 9 && results.every(function(r){return r.rarity==='common';})) rarity = 'rare';
+
+                var pool = POOL.filter(function(c){return c.rarity===rarity;});
+                var pulled = pool[Math.floor(Math.random()*pool.length)];
+                results.push(pulled);
+
+                // Unlock party member
+                if (pulled.partyIdx !== undefined && !party[pulled.partyIdx].unlocked) {
+                    party[pulled.partyIdx].unlocked = true;
+                    updatePartyUI();
+                }
+            }
+
+            // Display
+            var html = results.map(function(c, i) {
+                var starsStr = '★'.repeat(c.stars);
+                return '<div class="gacha-card '+c.rarity+'" style="animation-delay:'+i*0.08+'s">' +
+                    '<div class="g-icon">'+c.icon+'</div>' +
+                    '<div class="g-name">'+c.name+'</div>' +
+                    '<div class="g-stars">'+starsStr+'</div>' +
+                    '<div class="g-rarity">'+c.rarity+'</div></div>';
+            }).join('');
+            document.getElementById('gacha-results').innerHTML = html;
+
+            updateHUD();
+            document.getElementById('gacha-bal').textContent = '💎 ' + currency.toLocaleString();
+            document.getElementById('gacha-pity').textContent = 'Pity: ' + pityCount + '/90';
+            document.getElementById('btn-wish1').disabled = currency < 160;
+            document.getElementById('btn-wish10').disabled = currency < 1440;
+        };
+
+        game.openGacha = function() { if (!gachaOpen) game.toggleGacha(); };
+        game.closeGacha = function() { if (gachaOpen) game.toggleGacha(); };
+        game.toggleGacha = function() {
+            gachaOpen = !gachaOpen;
+            document.getElementById('gacha-overlay').classList.toggle('open', gachaOpen);
+            if (gachaOpen) {
+                document.exitPointerLock();
+                document.getElementById('gacha-bal').textContent = '💎 ' + currency.toLocaleString();
+                document.getElementById('gacha-pity').textContent = 'Pity: ' + pityCount + '/90';
+                document.getElementById('btn-wish1').disabled = currency < 160;
+                document.getElementById('btn-wish10').disabled = currency < 1440;
+            }
+        };
+
+        // ======== UI ========
+        function showDamage(pos, amount, isElemental) {
+            var sp = pos.clone().add(new THREE.Vector3(0, 1.5, 0));
+            sp.project(camera);
+            var x = (sp.x * 0.5 + 0.5) * window.innerWidth;
+            var y = (-sp.y * 0.5 + 0.5) * window.innerHeight;
+            var el = document.createElement('div');
+            el.className = 'dmg-popup ' + (isElemental ? 'element' : 'normal');
+            el.textContent = amount;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            document.body.appendChild(el);
+            setTimeout(function() { el.remove(); }, 1000);
+        }
+
+        function showKill(name, reward) {
+            var el = document.createElement('div');
+            el.className = 'kill-banner';
+            el.textContent = '⚔ ' + name + ' defeated! +' + reward + '💎';
+            document.body.appendChild(el);
+            setTimeout(function() { el.remove(); }, 1500);
+        }
+
+        function getElIcon(el) {
+            return {Fire:'🔥',Water:'💧',Wind:'🌪️',Earth:'🌍',Lightning:'⚡'}[el]||'✨';
+        }
+
+        function updateHUD() {
+            var c = party[activeCharIdx];
+            document.getElementById('hud-currency').textContent = '💎 ' + currency.toLocaleString();
+            document.getElementById('hud-enemies').textContent = 'Enemies: ' + enemies.length;
+            document.getElementById('hud-score').textContent = 'Score: ' + score.toLocaleString();
+            document.getElementById('hud-hp').style.width = (c.hp / c.maxHp * 100) + '%';
+        }
+
+        function updatePartyUI() {
+            var bar = document.getElementById('party-bar');
+            bar.innerHTML = '';
+            for (var i = 0; i < 4; i++) {
+                var p = party[i];
+                var div = document.createElement('div');
+                div.className = 'party-slot' + (i === activeCharIdx ? ' active' : '') + (!p.unlocked ? ' locked' : '');
+                div.innerHTML = '<span class="key-hint">'+(i+1)+'</span>' +
+                    (p.unlocked ? p.icon : '🔒') +
+                    (p.unlocked ? '<div class="mini-hp"><div class="mini-hp-fill" style="width:'+(p.hp/p.maxHp*100)+'%"></div></div>' : '');
+                div.onclick = (function(idx) { return function() { game.switchChar(idx); }; })(i);
+                bar.appendChild(div);
+            }
+        }
+        updatePartyUI();
+
+        // ======== GAME LOOP ========
+        function animate() {
+            requestAnimationFrame(animate);
+            var dt = clock.getDelta();
+            dt = Math.min(dt, 0.1); // clamp large dt
+
+            if (!gachaOpen) {
+                // Movement
+                if (mouseLocked) {
+                    var speed = 6 * dt;
+                    var forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
+                    var right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
+
+                    if (keys['w']) playerGroup.position.addScaledVector(forward, speed);
+                    if (keys['s']) playerGroup.position.addScaledVector(forward, -speed);
+                    if (keys['a']) playerGroup.position.addScaledVector(right, -speed);
+                    if (keys['d']) playerGroup.position.addScaledVector(right, speed);
+
+                    // Sprint
+                    if (keys['shift']) {
+                        if (keys['w']) playerGroup.position.addScaledVector(forward, speed * 0.6);
+                    }
+                }
+
+                // Jump
+                if (isJumping) {
+                    vySpeed -= 0.5 * dt;
+                    playerY += vySpeed;
+                    if (playerY <= 0) { playerY = 0; isJumping = false; vySpeed = 0; }
+                }
+                playerGroup.position.y = playerY;
+
+                // Clamp bounds
+                playerGroup.position.x = Math.max(-140, Math.min(140, playerGroup.position.x));
+                playerGroup.position.z = Math.max(-140, Math.min(140, playerGroup.position.z));
+
+                // Player rotation
+                playerGroup.rotation.y = yaw;
+            }
+
+            // Third-person camera (Genshin style behind-the-shoulder)
+            var camDist = 5;
+            var camHeight = 2.5;
+            var offset = new THREE.Vector3(0, camHeight, camDist);
+            offset.applyAxisAngle(new THREE.Vector3(1,0,0), pitch * 0.5);
+            offset.applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
+            camera.position.copy(playerGroup.position).add(offset);
+            camera.lookAt(playerGroup.position.clone().add(new THREE.Vector3(0, 1.5, 0)));
+
+            // Enemy AI
+            for (var i = 0; i < enemies.length; i++) {
+                var en = enemies[i];
+                var toPlayer = playerGroup.position.clone().sub(en.mesh.position);
+                var dist = toPlayer.length();
+
+                if (dist < 35 && dist > 2) {
+                    toPlayer.normalize();
+                    en.mesh.position.addScaledVector(toPlayer, en.speed * dt);
+                    en.mesh.lookAt(playerGroup.position);
+                }
+
+                // Enemy attack
+                if (dist < 2.5 && Math.random() < 2 * dt) {
+                    var c = party[activeCharIdx];
+                    c.hp = Math.max(0, c.hp - 3);
+                    updateHUD();
+                }
+
+                // Bob
+                en.mesh.children[0].position.y = en.size + Math.sin(Date.now()*0.003 + i)*0.15;
+
+                // Update HP bar screen position
+                var sp = en.mesh.position.clone().add(new THREE.Vector3(0, en.size*2.5, 0));
+                sp.project(camera);
+                var sx = (sp.x * 0.5 + 0.5) * window.innerWidth;
+                var sy = (-sp.y * 0.5 + 0.5) * window.innerHeight;
+                if (sp.z < 1 && dist < 40) {
+                    en.hpBar.style.display = 'block';
+                    en.hpBar.style.left = sx + 'px';
+                    en.hpBar.style.top = sy + 'px';
+                } else {
+                    en.hpBar.style.display = 'none';
+                }
+            }
+
+            // Cooldowns
+            if (cooldowns.skill > 0) {
+                cooldowns.skill -= dt;
+                document.getElementById('cd-skill').style.display = 'block';
+                document.getElementById('cd-skill').textContent = Math.ceil(cooldowns.skill) + 's';
+            } else {
+                document.getElementById('cd-skill').style.display = 'none';
+            }
+            if (cooldowns.burst > 0) {
+                cooldowns.burst -= dt;
+                document.getElementById('cd-burst').style.display = 'block';
+                document.getElementById('cd-burst').textContent = Math.ceil(cooldowns.burst) + 's';
+            } else {
+                document.getElementById('cd-burst').style.display = 'none';
+            }
+
+            // HP regen
+            var c = party[activeCharIdx];
+            if (c.hp < c.maxHp) {
+                c.hp = Math.min(c.maxHp, c.hp + dt * 3);
+                updateHUD();
+            }
+
+            // Waypoint animation
+            waypoint.rotation.y += dt * 2;
+            waypoint.position.y = 2 + Math.sin(Date.now()*0.002) * 0.3;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Respawn enemies periodically
+        setInterval(function() {
+            if (enemies.length < 10) spawnEnemy();
+        }, 4000);
+
+        // Resize
+        window.addEventListener('resize', function() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Earn currency over time
+        setInterval(function() {
+            currency += 50;
+            updateHUD();
+        }, 10000);
+
+    })();
+    </script>
+</body>
+</html>
