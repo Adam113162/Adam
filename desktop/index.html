@@ -794,7 +794,17 @@ var Apps = {
                         '</div>' +
                     '</div>' +
                 '</div>' +
-                '<iframe class="browser-frame" style="display:none;flex:1;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>' +
+                '<iframe class="browser-frame" style="display:none;flex:1;" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"></iframe>' +
+                '<div class="browser-blocked" style="display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;">' +
+                    '<div style="font-size:48px;margin-bottom:16px;">🔒</div>' +
+                    '<div style="font-size:18px;font-weight:500;margin-bottom:8px;">This site blocked loading inside the desktop</div>' +
+                    '<div style="color:var(--text-secondary);font-size:13px;margin-bottom:20px;">Some websites don\'t allow being embedded. Try the proxy or open directly.</div>' +
+                    '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">' +
+                        '<button class="browser-unblock-btn" data-action="proxy" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500;">🔓 Try Unblock (Proxy)</button>' +
+                        '<button class="browser-unblock-btn" data-action="open" style="padding:10px 20px;background:rgba(255,255,255,0.1);color:var(--text-primary);border:1px solid var(--border-bright);border-radius:8px;cursor:pointer;font-size:14px;">↗ Open Directly</button>' +
+                        '<button class="browser-unblock-btn" data-action="home" style="padding:10px 20px;background:rgba(255,255,255,0.06);color:var(--text-secondary);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;">← Back Home</button>' +
+                    '</div>' +
+                '</div>' +
             '</div>';
 
         var win = WM.create({ title:'Browser', icon:app.icon, appId:app.id, width:850, height:550, body:body,
@@ -802,56 +812,122 @@ var Apps = {
                 var urlBar = el.querySelector('.browser-url');
                 var frame = el.querySelector('.browser-frame');
                 var homePage = el.querySelector('.browser-home-page');
+                var blockedPage = el.querySelector('.browser-blocked');
                 var homeSearch = el.querySelector('#bh-search');
                 var currentUrl = '';
+                var originalUrl = '';
                 var historyStack = [];
                 var historyIdx = -1;
+                var loadTimer = null;
+                var proxyMode = false;
 
-                function showInFrame(u) {
+                // Proxy URL to bypass X-Frame-Options
+                var PROXY = 'https://api.allorigins.win/raw?url=';
+
+                function showInFrame(u, skipHistory) {
                     currentUrl = u;
-                    urlBar.value = u;
-                    el.querySelector('.win-title').textContent = u.replace(/^https?:\/\/(www\.)?/,'').split('/')[0];
+                    urlBar.value = originalUrl || u;
+                    el.querySelector('.win-title').textContent = (originalUrl||u).replace(/^https?:\/\/(www\.)?/,'').split('/')[0];
                     homePage.style.display = 'none';
+                    blockedPage.style.display = 'none';
                     frame.style.display = 'block';
                     frame.src = u;
-                    if (historyStack[historyIdx] !== u) {
-                        historyStack = historyStack.slice(0, historyIdx + 1);
-                        historyStack.push(u);
-                        historyIdx = historyStack.length - 1;
+                    if (!skipHistory) {
+                        var histUrl = originalUrl || u;
+                        if (historyStack[historyIdx] !== histUrl) {
+                            historyStack = historyStack.slice(0, historyIdx + 1);
+                            historyStack.push(histUrl);
+                            historyIdx = historyStack.length - 1;
+                        }
                     }
+                    // Blocked detection: if iframe stays blank after 4 seconds, show fallback
+                    clearTimeout(loadTimer);
+                    proxyMode = false;
+                    loadTimer = setTimeout(function(){
+                        try {
+                            // Try to access iframe — if blocked by CORS, it throws
+                            var doc = frame.contentDocument || frame.contentWindow.document;
+                            if (!doc || !doc.body || doc.body.innerHTML.length < 10) {
+                                showBlocked();
+                            }
+                        } catch(e) {
+                            showBlocked();
+                        }
+                    }, 4000);
+                }
+
+                frame.addEventListener('load', function(){ clearTimeout(loadTimer); });
+
+                function showBlocked() {
+                    if (proxyMode) return; // Already tried proxy
+                    frame.style.display = 'none';
+                    blockedPage.style.display = 'flex';
                 }
 
                 function goHome() {
                     currentUrl = '';
+                    originalUrl = '';
                     urlBar.value = '';
                     el.querySelector('.win-title').textContent = 'Browser';
                     frame.style.display = 'none';
                     frame.src = '';
+                    blockedPage.style.display = 'none';
                     homePage.style.display = 'block';
+                    clearTimeout(loadTimer);
                 }
 
                 function navigate(rawUrl) {
                     var u = rawUrl.trim();
                     if (!u) return;
+                    originalUrl = '';
                     // Search query — use Google
                     if (u.indexOf('.')===-1 && u.indexOf(':')===-1) {
+                        originalUrl = u;
                         u = 'https://www.google.com/search?igu=1&q=' + encodeURIComponent(u);
                     } else if (!/^https?:\/\//i.test(u)) {
                         u = 'https://' + u;
                     }
+                    if (!originalUrl) originalUrl = u;
                     showInFrame(u);
                 }
+
+                // Unblock buttons
+                el.querySelector('[data-action="proxy"]').onclick = function(){
+                    if (originalUrl || currentUrl) {
+                        proxyMode = true;
+                        var target = originalUrl || currentUrl;
+                        blockedPage.style.display = 'none';
+                        frame.style.display = 'block';
+                        frame.src = PROXY + encodeURIComponent(target);
+                        clearTimeout(loadTimer);
+                        // If proxy also fails after 5s, offer direct open
+                        loadTimer = setTimeout(function(){
+                            try {
+                                var doc = frame.contentDocument || frame.contentWindow.document;
+                                if (!doc || !doc.body || doc.body.innerHTML.length < 10) {
+                                    window.open(originalUrl || currentUrl, '_blank');
+                                }
+                            } catch(e) {
+                                window.open(originalUrl || currentUrl, '_blank');
+                            }
+                        }, 5000);
+                    }
+                };
+                el.querySelector('[data-action="open"]').onclick = function(){
+                    window.open(originalUrl || currentUrl, '_blank');
+                };
+                el.querySelector('[data-action="home"]').onclick = goHome;
 
                 // Toolbar buttons
                 urlBar.addEventListener('keydown', function(e){ if(e.key==='Enter') navigate(urlBar.value); });
                 el.querySelector('[data-nav="go"]').onclick = function(){ navigate(urlBar.value); };
-                el.querySelector('[data-nav="newtab"]').onclick = function(){ if(currentUrl) window.open(currentUrl,'_blank'); else window.open('https://www.google.com','_blank'); };
+                el.querySelector('[data-nav="newtab"]').onclick = function(){ if(originalUrl||currentUrl) window.open(originalUrl||currentUrl,'_blank'); else window.open('https://www.google.com','_blank'); };
                 el.querySelector('[data-nav="back"]').onclick = function(){
-                    if (historyIdx > 0) { historyIdx--; showInFrame(historyStack[historyIdx]); }
+                    if (historyIdx > 0) { historyIdx--; originalUrl=historyStack[historyIdx]; navigate(originalUrl); }
                     else goHome();
                 };
                 el.querySelector('[data-nav="forward"]').onclick = function(){
-                    if (historyIdx < historyStack.length - 1) { historyIdx++; showInFrame(historyStack[historyIdx]); }
+                    if (historyIdx < historyStack.length - 1) { historyIdx++; originalUrl=historyStack[historyIdx]; navigate(originalUrl); }
                 };
                 el.querySelector('[data-nav="reload"]').onclick = function(){
                     if(currentUrl) { frame.src = ''; setTimeout(function(){ frame.src = currentUrl; }, 50); }
@@ -872,10 +948,10 @@ var Apps = {
                 // Bookmark clicks — load in frame
                 var bms = el.querySelectorAll('.browser-bookmark');
                 for(var i=0;i<bms.length;i++) {
-                    bms[i].addEventListener('click', function(){ showInFrame(this.getAttribute('data-url')); });
+                    bms[i].addEventListener('click', function(){ originalUrl=this.getAttribute('data-url'); navigate(originalUrl); });
                 }
 
-                if (url) setTimeout(function(){ showInFrame(url); }, 100);
+                if (url) setTimeout(function(){ originalUrl=url; navigate(url); }, 100);
             }
         });
     },
