@@ -102,13 +102,8 @@ class GachaEngine:
             return []
 
         results: list[PullResult] = []
-        # Temporarily give back currency since individual pulls deduct it
-        cost = int(player.PULL_COST * player.MULTI_PULL_COUNT * player.MULTI_PULL_DISCOUNT)
-        player.currency += cost
 
         for i in range(player.MULTI_PULL_COUNT):
-            # Force spend for each individual pull
-            player.currency -= player.PULL_COST
             pity.increment()
             rates = pity.get_effective_rates(self.base_rates)
             is_pity = pity.at_hard_pity or pity.at_epic_pity
